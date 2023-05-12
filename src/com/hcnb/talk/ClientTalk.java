@@ -16,8 +16,9 @@ import java.util.Date;
 public class ClientTalk extends JFrame {
     private JTextArea ta = new JTextArea(10, 20);
     private JTextField tf = new JTextField(20);
+//    private static final String CONN_STR = "116.208.49.79";
     private static final String CONN_STR = "127.0.0.1";
-    private static final int CONN_PORT = 56341;
+    private static final int CONN_PORT = 8899;
     private DataOutputStream dos = null;
     private boolean isConn = false;
 

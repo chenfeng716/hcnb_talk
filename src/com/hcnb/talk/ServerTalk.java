@@ -16,7 +16,7 @@ import java.util.Iterator;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class ServerTalk extends JFrame {
-    private static final int PORT = 56341;
+    private static final int PORT = 8899;
     private JTextArea serverTa = new JTextArea();
     private JPanel btnTool = new JPanel();
     private JButton startBtn = new JButton("启动");
@@ -51,59 +51,26 @@ public class ServerTalk extends JFrame {
             }
         });
 
-        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
-        stopBtn.addActionListener(new AbstractAction() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                isStart = false;
-                try {
-                    if (ss != null) {
-                        ss.close();
-                        isStart = false;
-                    }
-                    serverTa.append("服务器已断开");
-                    System.out.println("服务器停止!");
-                    System.exit(0);
-                } catch (IOException ioException) {
-                    ioException.printStackTrace();
-                }
-            }
-        });
-
-        startBtn.addActionListener(new AbstractAction() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                SwingWorker<Void, Void> worker = new SwingWorker<Void,Void>() {
-                    @Override
-                    protected Void doInBackground() throws Exception {
-                        if (ss == null) {
-                            ss = new ServerSocket(PORT);
-                        }
-                        startServer();
-                        isStart = true;
-                        return null;
-                    }
-                };
-
-
-                worker.execute();
-            }
-        });
+//        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         serverTa.setEditable(false);
-        this.setVisible(true);
-
+        this.setVisible(false);
+        startServer();
     }
 
     //服务器启动
     public void startServer() {
         try {
-            isStart = true;
-            serverTa.append("服务器已启动\n");
+            try {
+                ss = new ServerSocket(PORT);
+                isStart = true;
+                System.out.println("服务器启动成功");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
             while (isStart) {
                 Socket s = ss.accept();
-                synchronized(ccList) {
+                synchronized (ccList) {
                     ccList.add(new ClientConn(s));
                 }
                 System.out.println("一个客户端已连接" + s.getInetAddress() + "/" + s.getPort());
@@ -114,6 +81,10 @@ public class ServerTalk extends JFrame {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    //服务器停止
+    public void stopServer() {
 
     }
 
@@ -134,7 +105,7 @@ public class ServerTalk extends JFrame {
                 //循环接收信息
                 while (isStart) {
                     String msg = dis.readUTF();
-                    System.out.println(s.getInetAddress() + ": " + msg + "\n");
+                    System.out.println(s.getInetAddress() + ": " + msg );
                     String sendMsg = s.getInetAddress() + "|" + s.getPort() + "  :" + msg;
                     //遍历ccList来调用send();
                     Iterator<ClientConn> it = ccList.iterator();
