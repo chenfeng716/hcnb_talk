@@ -13,9 +13,10 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class ServerTalk extends JFrame {
-    private static final int PORT = 8888;
+    private static final int PORT = 56341;
     private JTextArea serverTa = new JTextArea();
     private JPanel btnTool = new JPanel();
     private JButton startBtn = new JButton("启动");
@@ -23,7 +24,7 @@ public class ServerTalk extends JFrame {
     private ServerSocket ss = null;
     private Socket s = null;
     private boolean isStart = false;
-    private ArrayList<ClientConn> ccList = new ArrayList<ClientConn>();
+    private CopyOnWriteArrayList<ClientConn> ccList = new CopyOnWriteArrayList<ClientConn>();
 
     public ServerTalk() throws HeadlessException {
         this.setTitle("服务器端");
@@ -73,60 +74,46 @@ public class ServerTalk extends JFrame {
         startBtn.addActionListener(new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                try {
-                    if (ss == null) {
-                        ss = new ServerSocket(PORT);
+                SwingWorker<Void, Void> worker = new SwingWorker<Void,Void>() {
+                    @Override
+                    protected Void doInBackground() throws Exception {
+                        if (ss == null) {
+                            ss = new ServerSocket(PORT);
+                        }
+                        startServer();
+                        isStart = true;
+                        return null;
                     }
-                    isStart = true;
-                    serverTa.append("服务器已启动!\n");
-                } catch (IOException ioException) {
-                    ioException.printStackTrace();
-                }
+                };
+
+
+                worker.execute();
             }
         });
 
         serverTa.setEditable(false);
         this.setVisible(true);
-        startServer();
+
     }
 
     //服务器启动
     public void startServer() {
         try {
-            try {
-                ss = new ServerSocket(PORT);
-                isStart = true;
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            isStart = true;
+            serverTa.append("服务器已启动\n");
             while (isStart) {
                 Socket s = ss.accept();
-                ccList.add(new ClientConn(s));
+                synchronized(ccList) {
+                    ccList.add(new ClientConn(s));
+                }
                 System.out.println("一个客户端已连接" + s.getInetAddress() + "/" + s.getPort());
                 serverTa.append("一个客户端已连接" + s.getInetAddress() + "/" + s.getPort() + "\n");
             }
+        } catch (SocketException e) {
+            System.out.println("服务器中断");
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-    }
-
-//    //接收数据
-//    public void receiver(){
-//        try {
-//            dis=new DataInputStream(s.getInputStream());
-//            String msg=dis.readUTF();
-//            System.out.println(msg);
-//            serverTa.append(msg);
-//
-//
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//    }
-
-    //服务器停止
-    public void stopServer() {
 
     }
 
@@ -148,7 +135,6 @@ public class ServerTalk extends JFrame {
                 while (isStart) {
                     String msg = dis.readUTF();
                     System.out.println(s.getInetAddress() + ": " + msg + "\n");
-//                    serverTa.append(s.getInetAddress() + ": " + msg + "\n");
                     String sendMsg = s.getInetAddress() + "|" + s.getPort() + "  :" + msg;
                     //遍历ccList来调用send();
                     Iterator<ClientConn> it = ccList.iterator();
@@ -159,7 +145,7 @@ public class ServerTalk extends JFrame {
                 }
             } catch (SocketException e) {
                 System.out.println("一个客户端下线了!");
-                serverTa.append( s.getInetAddress() + "|" + s.getPort()+"  已下线 \n");
+                serverTa.append(s.getInetAddress() + "|" + s.getPort() + "  已下线 \n");
             } catch (IOException e) {
                 e.printStackTrace();
             }

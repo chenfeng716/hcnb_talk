@@ -7,19 +7,21 @@ import java.awt.event.ActionEvent;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.net.ConnectException;
 import java.net.Socket;
+import java.net.SocketException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class ClientTalk extends JFrame {
     private JTextArea ta = new JTextArea(10, 20);
     private JTextField tf = new JTextField(20);
-    private static final String CONN_STR="127.0.0.1";
-    private static final int CONN_PORT=8888;
-    private DataOutputStream dos=null;
-    private boolean isConn=false;
+    private static final String CONN_STR = "127.0.0.1";
+    private static final int CONN_PORT = 56341;
+    private DataOutputStream dos = null;
+    private boolean isConn = false;
 
-    private Socket s=null;
+    private Socket s = null;
 
     public ClientTalk() throws HeadlessException {
         super();
@@ -45,17 +47,21 @@ public class ClientTalk extends JFrame {
                 }
                 Date date = new Date();
                 tf.setText("");
-                String time=getTimeShort(date);
+                String time = getTimeShort(date);
 //                ta.append(time+"\n");
 //                ta.append(sendMsg+"\n");
                 send(sendMsg);
             }
         });
         try {
-            s=new Socket(CONN_STR,CONN_PORT);
-            isConn=true;
+            s = new Socket(CONN_STR, CONN_PORT);
+            isConn = true;
+            ta.append("服务器连接成功\n");
 
-        } catch (IOException e) {
+        }catch (ConnectException d ){
+            ta.append("连接超时!");
+        }
+        catch (IOException e) {
             e.printStackTrace();
         }
         this.setVisible(true);
@@ -69,9 +75,9 @@ public class ClientTalk extends JFrame {
     }
 
     //发送信息至服务器
-    private void send(String msg){
+    private void send(String msg) {
         try {
-            dos=new DataOutputStream(s.getOutputStream());
+            dos = new DataOutputStream(s.getOutputStream());
             dos.writeUTF(msg);
         } catch (IOException e) {
             e.printStackTrace();
@@ -79,16 +85,18 @@ public class ClientTalk extends JFrame {
     }
 
     //多线程接收服务器的类,实现Runnable接口
-    class Receiver implements Runnable{
+    class Receiver implements Runnable {
 
         @Override
         public void run() {
             try {
-                while (isConn){
-                    DataInputStream dis=new DataInputStream(s.getInputStream());
+                while (isConn) {
+                    DataInputStream dis = new DataInputStream(s.getInputStream());
                     String receiveMsg = dis.readUTF();
                     ta.append(receiveMsg);
                 }
+            } catch (SocketException e) {
+                ta.append("服务器已中断连接");
             } catch (IOException e) {
                 e.printStackTrace();
             }
