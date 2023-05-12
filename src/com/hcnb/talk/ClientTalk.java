@@ -4,6 +4,7 @@ import javax.swing.*;
 import java.awt.*;
 import javax.swing.JTextArea;
 import java.awt.event.ActionEvent;
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
@@ -16,6 +17,7 @@ public class ClientTalk extends JFrame {
     private static final String CONN_STR="127.0.0.1";
     private static final int CONN_PORT=8888;
     private DataOutputStream dos=null;
+    private boolean isConn=false;
 
     private Socket s=null;
 
@@ -44,17 +46,20 @@ public class ClientTalk extends JFrame {
                 Date date = new Date();
                 tf.setText("");
                 String time=getTimeShort(date);
-                ta.append(time+"\n");
-                ta.append(sendMsg+"\n");
+//                ta.append(time+"\n");
+//                ta.append(sendMsg+"\n");
                 send(sendMsg);
             }
         });
         try {
             s=new Socket(CONN_STR,CONN_PORT);
+            isConn=true;
+
         } catch (IOException e) {
             e.printStackTrace();
         }
         this.setVisible(true);
+        new Thread(new Receiver()).start();
     }
 
     public static String getTimeShort(Date time) {
@@ -72,6 +77,24 @@ public class ClientTalk extends JFrame {
             e.printStackTrace();
         }
     }
+
+    //多线程接收服务器的类,实现Runnable接口
+    class Receiver implements Runnable{
+
+        @Override
+        public void run() {
+            try {
+                while (isConn){
+                    DataInputStream dis=new DataInputStream(s.getInputStream());
+                    String receiveMsg = dis.readUTF();
+                    ta.append(receiveMsg);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
 
     public static void main(String[] args) {
         ClientTalk ct = new ClientTalk();

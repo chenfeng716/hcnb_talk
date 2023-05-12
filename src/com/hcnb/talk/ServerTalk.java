@@ -10,7 +10,9 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.ArrayList;
+import java.util.Iterator;
 
 public class ServerTalk extends JFrame {
     private static final int PORT = 8888;
@@ -98,10 +100,10 @@ public class ServerTalk extends JFrame {
                 e.printStackTrace();
             }
             while (isStart) {
-                Socket s=ss.accept();
+                Socket s = ss.accept();
                 ccList.add(new ClientConn(s));
                 System.out.println("一个客户端已连接" + s.getInetAddress() + "/" + s.getPort());
-                serverTa.append("一个客户端已连接" + s.getInetAddress() + "/" + s.getPort()+"\n");
+                serverTa.append("一个客户端已连接" + s.getInetAddress() + "/" + s.getPort() + "\n");
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -145,15 +147,34 @@ public class ServerTalk extends JFrame {
                 //循环接收信息
                 while (isStart) {
                     String msg = dis.readUTF();
-                    System.out.println(s.getInetAddress()+": "+msg+"\n");
-                    serverTa.append(s.getInetAddress()+": "+msg+"\n");
+                    System.out.println(s.getInetAddress() + ": " + msg + "\n");
+//                    serverTa.append(s.getInetAddress() + ": " + msg + "\n");
+                    String sendMsg = s.getInetAddress() + "|" + s.getPort() + "  :" + msg;
+                    //遍历ccList来调用send();
+                    Iterator<ClientConn> it = ccList.iterator();
+                    while (it.hasNext()) {
+                        ClientConn clientConn = it.next();
+                        clientConn.send(sendMsg);
+                    }
                 }
-
-
+            } catch (SocketException e) {
+                System.out.println("一个客户端下线了!");
+                serverTa.append( s.getInetAddress() + "|" + s.getPort()+"  已下线 \n");
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
+
+        //每一个连接对象数据发送的方法
+        public void send(String msg) {
+            try {
+                DataOutputStream dos = new DataOutputStream(this.s.getOutputStream());
+                dos.writeUTF(msg);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
     }
 
     public static void main(String[] args) {
